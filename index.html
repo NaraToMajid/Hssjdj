@@ -4,62 +4,32 @@
 <meta charset="utf-8">
 <title>Minecraft WebAR</title>
 
+<!-- A-Frame -->
 <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+<!-- AR.js -->
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
 <style>
-body { margin:0; overflow:hidden; font-family:sans-serif; }
+body { margin: 0; overflow: hidden; font-family: sans-serif; }
 
-#overlay {
+#hint {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.85);
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
   color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  text-align: center;
-}
-
-#overlay button {
-  margin-top: 12px;
-  padding: 12px 22px;
-  font-size: 16px;
-  border: none;
-  border-radius: 10px;
-  background: #4CAF50;
-  color: white;
-}
-
-#overlay .deny {
-  background: #777;
-  margin-top: 8px;
-}
-
-#error {
-  color: #ff8080;
-  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  z-index: 999;
 }
 </style>
 </head>
 
 <body>
 
-<!-- NOTIFIKASI NANYA DULU -->
-<div id="overlay">
-  <h2>📷 Akses Kamera</h2>
-  <p>
-    Apakah kamu mengizinkan kamera digunakan<br>
-    untuk menampilkan dunia AR?
-  </p>
-
-  <button onclick="requestCamera()">Ya, izinkan</button>
-  <button class="deny" onclick="denyCamera()">Tidak</button>
-
-  <div id="error"></div>
-</div>
+<div id="hint">👆 Tap layar untuk taruh blok</div>
 
 <a-scene
   embedded
@@ -71,25 +41,29 @@ body { margin:0; overflow:hidden; font-family:sans-serif; }
 </a-scene>
 
 <script>
-const overlay = document.getElementById("overlay");
-const errorText = document.getElementById("error");
+const scene = document.querySelector("a-scene");
 
-function requestCamera() {
-  navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => {
-      stream.getTracks().forEach(t => t.stop());
-      overlay.style.display = "none";
-    })
-    .catch(() => {
-      errorText.innerText =
-        "❌ Kamera ditolak. Silakan aktifkan izin kamera di pengaturan browser.";
-    });
-}
+scene.addEventListener("click", () => {
+  const camera = document.querySelector("[camera]");
+  const pos = new THREE.Vector3();
+  const dir = new THREE.Vector3();
 
-function denyCamera() {
-  errorText.innerText =
-    "⚠️ Kamera diperlukan untuk menjalankan fitur AR.";
-}
+  camera.object3D.getWorldPosition(pos);
+  camera.object3D.getWorldDirection(dir);
+
+  // Jarak blok dari kamera
+  dir.multiplyScalar(1.5);
+  pos.add(dir);
+
+  const block = document.createElement("a-box");
+  block.setAttribute("position", `${pos.x} ${pos.y} ${pos.z}`);
+  block.setAttribute("depth", "0.25");
+  block.setAttribute("height", "0.25");
+  block.setAttribute("width", "0.25");
+  block.setAttribute("color", "#4CAF50");
+
+  scene.appendChild(block);
+});
 </script>
 
 </body>
