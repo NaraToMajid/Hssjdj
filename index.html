@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Minecraft WebAR</title>
+<title>WebAR Minecraft Block</title>
 
 <!-- A-Frame -->
 <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -11,11 +11,15 @@
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
 <style>
-body { margin: 0; overflow: hidden; font-family: sans-serif; }
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: sans-serif;
+}
 
 #hint {
   position: fixed;
-  bottom: 10px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0,0,0,0.6);
@@ -29,7 +33,7 @@ body { margin: 0; overflow: hidden; font-family: sans-serif; }
 
 <body>
 
-<div id="hint">👆 Tap layar untuk taruh blok</div>
+<div id="hint">👆 Tap layar untuk menaruh blok</div>
 
 <a-scene
   embedded
@@ -37,33 +41,42 @@ body { margin: 0; overflow: hidden; font-family: sans-serif; }
   arjs="sourceType: webcam; debugUIEnabled: false;"
   renderer="logarithmicDepthBuffer: true;">
 
+  <!-- Kamera -->
   <a-entity camera look-controls></a-entity>
+
 </a-scene>
 
 <script>
 const scene = document.querySelector("a-scene");
 
-scene.addEventListener("click", () => {
+// EVENT WAJIB UNTUK HP
+scene.addEventListener("touchstart", function (e) {
+  e.preventDefault();
+
   const camera = document.querySelector("[camera]");
+  if (!camera) return;
+
   const pos = new THREE.Vector3();
   const dir = new THREE.Vector3();
 
+  // posisi & arah kamera
   camera.object3D.getWorldPosition(pos);
   camera.object3D.getWorldDirection(dir);
 
-  // Jarak blok dari kamera
+  // jarak blok dari kamera
   dir.multiplyScalar(1.5);
   pos.add(dir);
 
+  // buat blok
   const block = document.createElement("a-box");
   block.setAttribute("position", `${pos.x} ${pos.y} ${pos.z}`);
-  block.setAttribute("depth", "0.25");
-  block.setAttribute("height", "0.25");
   block.setAttribute("width", "0.25");
+  block.setAttribute("height", "0.25");
+  block.setAttribute("depth", "0.25");
   block.setAttribute("color", "#4CAF50");
 
   scene.appendChild(block);
-});
+}, { passive: false });
 </script>
 
 </body>
