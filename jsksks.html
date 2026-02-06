@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Minecraft WebAR</title>
+
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+
+<style>
+body { margin:0; overflow:hidden; font-family:sans-serif; }
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  text-align: center;
+}
+
+#overlay button {
+  margin-top: 12px;
+  padding: 12px 22px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  background: #4CAF50;
+  color: white;
+}
+
+#overlay .deny {
+  background: #777;
+  margin-top: 8px;
+}
+
+#error {
+  color: #ff8080;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- NOTIFIKASI NANYA DULU -->
+<div id="overlay">
+  <h2>📷 Akses Kamera</h2>
+  <p>
+    Apakah kamu mengizinkan kamera digunakan<br>
+    untuk menampilkan dunia AR?
+  </p>
+
+  <button onclick="requestCamera()">Ya, izinkan</button>
+  <button class="deny" onclick="denyCamera()">Tidak</button>
+
+  <div id="error"></div>
+</div>
+
+<a-scene
+  embedded
+  vr-mode-ui="enabled:false"
+  arjs="sourceType: webcam; debugUIEnabled: false;"
+  renderer="logarithmicDepthBuffer: true;">
+
+  <a-entity camera look-controls></a-entity>
+</a-scene>
+
+<script>
+const overlay = document.getElementById("overlay");
+const errorText = document.getElementById("error");
+
+function requestCamera() {
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      stream.getTracks().forEach(t => t.stop());
+      overlay.style.display = "none";
+    })
+    .catch(() => {
+      errorText.innerText =
+        "❌ Kamera ditolak. Silakan aktifkan izin kamera di pengaturan browser.";
+    });
+}
+
+function denyCamera() {
+  errorText.innerText =
+    "⚠️ Kamera diperlukan untuk menjalankan fitur AR.";
+}
+</script>
+
+</body>
+</html>
