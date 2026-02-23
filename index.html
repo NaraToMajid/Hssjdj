@@ -1,65 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>AR Hand Drawing</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    button { position: absolute; top: 20px; left: 20px; z-index: 1; }
-  </style>
+<meta charset="utf-8">
+<title>AR Hand Draw</title>
+<style>
+body { margin:0; overflow:hidden; background:black; }
+#startBtn{
+position:fixed;
+inset:0;
+background:black;
+color:white;
+font-size:24px;
+border:none;
+}
+</style>
 </head>
 <body>
-<button id="startAR">Start AR</button>
+
+<button id="startBtn">Tap Untuk Mulai AR</button>
 
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
 
-let camera, scene, renderer;
-let controller;
-let line;
-let points = [];
+let scene, camera, renderer;
+let line, points = [];
 
 init();
 
-function init() {
+function init(){
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 20);
 
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.xr.enabled = true;
   document.body.appendChild(renderer.domElement);
 
-  document.getElementById("startAR").addEventListener("click", async () => {
-    const session = await navigator.xr.requestSession("immersive-ar", {
-      requiredFeatures: ["local-floor", "hand-tracking"]
-    });
-    renderer.xr.setSession(session);
-    renderer.setAnimationLoop(render);
-  });
+  document.getElementById("startBtn").addEventListener("click", startAR);
 }
 
-function render() {
+async function startAR(){
+  const session = await navigator.xr.requestSession("immersive-ar", {
+    requiredFeatures: ["local-floor", "hand-tracking"]
+  });
+
+  renderer.xr.setSession(session);
+  document.getElementById("startBtn").style.display = "none";
+  renderer.setAnimationLoop(render);
+}
+
+function render(timestamp, frame){
   const session = renderer.xr.getSession();
-  const referenceSpace = renderer.xr.getReferenceSpace();
-  const frame = renderer.xr.getFrame();
+  const refSpace = renderer.xr.getReferenceSpace();
 
-  if (frame) {
-    const hands = session.inputSources;
-
-    for (const source of hands) {
-      if (source.hand) {
+  if(frame){
+    for(const source of session.inputSources){
+      if(source.hand){
         const joint = source.hand.get("index-finger-tip");
-        const pose = frame.getJointPose(joint, referenceSpace);
+        const pose = frame.getJointPose(joint, refSpace);
 
-        if (pose) {
-          const pos = pose.transform.position;
-          points.push(new THREE.Vector3(pos.x, pos.y, pos.z));
+        if(pose){
+          const p = pose.transform.position;
+          points.push(new THREE.Vector3(p.x, p.y, p.z));
 
           const geometry = new THREE.BufferGeometry().setFromPoints(points);
-          const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
-          
-          if (line) scene.remove(line);
+          const material = new THREE.LineBasicMaterial({color:0xff0000});
+
+          if(line) scene.remove(line);
           line = new THREE.Line(geometry, material);
           scene.add(line);
         }
@@ -70,5 +77,6 @@ function render() {
   renderer.render(scene, camera);
 }
 </script>
+
 </body>
 </html>
