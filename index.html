@@ -1,100 +1,74 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Face Parallax</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-
-<style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: black;
-}
-
-#container {
-  width: 100vw;
-  height: 100vh;
-  perspective: 800px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-#screen {
-  width: 300px;
-  height: 500px;
-  background: linear-gradient(145deg, #1e1e1e, #333);
-  border-radius: 20px;
-  box-shadow: 0 40px 100px rgba(0,0,0,0.6);
-  transform-style: preserve-3d;
-  transition: transform 0.1s linear;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-family: sans-serif;
-  font-size: 24px;
-}
-
-video {
-  display: none;
-}
-</style>
+  <meta charset="utf-8">
+  <title>AR Hand Drawing</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    button { position: absolute; top: 20px; left: 20px; z-index: 1; }
+  </style>
 </head>
 <body>
+<button id="startAR">Start AR</button>
 
-<div id="container">
-  <div id="screen">3D SCREEN</div>
-</div>
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js";
 
-<video id="video" autoplay playsinline></video>
+let camera, scene, renderer;
+let controller;
+let line;
+let points = [];
 
-<script>
-const videoElement = document.getElementById('video');
-const screen = document.getElementById('screen');
+init();
 
-const faceMesh = new FaceMesh({
-  locateFile: (file) => {
-    return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+function init() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.01, 20);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  document.getElementById("startAR").addEventListener("click", async () => {
+    const session = await navigator.xr.requestSession("immersive-ar", {
+      requiredFeatures: ["local-floor", "hand-tracking"]
+    });
+    renderer.xr.setSession(session);
+    renderer.setAnimationLoop(render);
+  });
+}
+
+function render() {
+  const session = renderer.xr.getSession();
+  const referenceSpace = renderer.xr.getReferenceSpace();
+  const frame = renderer.xr.getFrame();
+
+  if (frame) {
+    const hands = session.inputSources;
+
+    for (const source of hands) {
+      if (source.hand) {
+        const joint = source.hand.get("index-finger-tip");
+        const pose = frame.getJointPose(joint, referenceSpace);
+
+        if (pose) {
+          const pos = pose.transform.position;
+          points.push(new THREE.Vector3(pos.x, pos.y, pos.z));
+
+          const geometry = new THREE.BufferGeometry().setFromPoints(points);
+          const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
+          
+          if (line) scene.remove(line);
+          line = new THREE.Line(geometry, material);
+          scene.add(line);
+        }
+      }
+    }
   }
-});
 
-faceMesh.setOptions({
-  maxNumFaces: 1,
-  refineLandmarks: true,
-  minDetectionConfidence: 0.5,
-  minTrackingConfidence: 0.5
-});
-
-faceMesh.onResults(results => {
-  if (results.multiFaceLandmarks.length > 0) {
-    const face = results.multiFaceLandmarks[0];
-
-    // Ambil titik hidung (landmark 1)
-    const nose = face[1];
-
-    const x = (nose.x - 0.5) * 40;
-    const y = (nose.y - 0.5) * 40;
-
-    screen.style.transform =
-      `rotateY(${x}deg) rotateX(${-y}deg)`;
-  }
-});
-
-const camera = new Camera(videoElement, {
-  onFrame: async () => {
-    await faceMesh.send({ image: videoElement });
-  },
-  width: 640,
-  height: 480
-});
-
-camera.start();
+  renderer.render(scene, camera);
+}
 </script>
-
 </body>
 </html>
